@@ -139,6 +139,39 @@
             float: right;
             margin-top: 10px;
         }
+        
+        .start-screen {
+            text-align: center;
+            color: #fff;
+            padding: 40px;
+        }
+        
+        .start-screen h1 {
+            font-size: 48px;
+            margin-bottom: 20px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+        }
+        
+        .start-screen p {
+            font-size: 18px;
+            margin-bottom: 30px;
+            color: #ccc;
+        }
+        
+        .start-btn {
+            background: #fff;
+            color: #000;
+            border: none;
+            padding: 15px 30px;
+            font-size: 20px;
+            cursor: pointer;
+            border-radius: 5px;
+            transition: background 0.3s;
+        }
+        
+        .start-btn:hover {
+            background: #ccc;
+        }
     </style>
 </head>
 <body>
@@ -180,12 +213,18 @@
             </div>
         </div>
         
-        <div class="score">
+        <div class="start-screen" id="startScreen">
+            <h1>Pong Game</h1>
+            <p>Use W/S or Arrow Keys to move your paddle up and down</p>
+            <button class="start-btn" onclick="startGame()">Start Game</button>
+        </div>
+        
+        <div class="score" id="scoreDisplay" style="display: none;">
             Player: <span id="playerScore">0</span> | AI: <span id="aiScore">0</span>
         </div>
-        <canvas id="gameCanvas" width="800" height="400"></canvas>
+        <canvas id="gameCanvas" width="800" height="400" style="display: none;"></canvas>
         <div class="controls">
-            Use WASD or Arrow Keys to move your paddle in 2D
+            Use W/S or Arrow Keys to move your paddle up and down
         </div>
         <div class="speed-display">
             Ball Speed: <span id="currentBallSpeed">4.0</span> | Paddle Speed: <span id="currentPaddleSpeed">5.0</span>
@@ -234,7 +273,7 @@
         
         let playerScore = 0;
         let aiScore = 0;
-        let gameRunning = true;
+        let gameRunning = false;
         let keys = {};
         
         // Initialize game
@@ -248,9 +287,21 @@
                 return;
             }
             
-            resetBall();
+            // Don't start the game automatically - wait for user to click start
             updateSpeedDisplay();
             gameLoop();
+        }
+        
+        // Start the game when user clicks the start button
+        function startGame() {
+            // Hide start screen and show game elements
+            document.getElementById('startScreen').style.display = 'none';
+            document.getElementById('scoreDisplay').style.display = 'block';
+            document.getElementById('gameCanvas').style.display = 'block';
+            
+            // Initialize game state
+            resetBall();
+            gameRunning = true;
         }
         
         // Game loop
@@ -269,22 +320,15 @@
             // Check for speed ramp-up
             checkSpeedRamp();
             
-            // Update paddle positions and track velocity (2D movement with WASD)
+            // Update paddle positions and track velocity (vertical movement only)
             playerPaddle.lastX = playerPaddle.x;
             playerPaddle.lastY = playerPaddle.y;
             
-            // Vertical movement (W/S)
+            // Vertical movement only (W/S)
             if (keys['w'] || keys['ArrowUp']) {
                 playerPaddle.y = Math.max(0, playerPaddle.y - GAME_STATE.currentPaddleSpeed);
             } else if (keys['s'] || keys['ArrowDown']) {
                 playerPaddle.y = Math.min(canvas.height - CONFIG.PADDLE_HEIGHT, playerPaddle.y + GAME_STATE.currentPaddleSpeed);
-            }
-            
-            // Horizontal movement (A/D)
-            if (keys['a'] || keys['ArrowLeft']) {
-                playerPaddle.x = Math.max(0, playerPaddle.x - GAME_STATE.currentPaddleSpeed);
-            } else if (keys['d'] || keys['ArrowRight']) {
-                playerPaddle.x = Math.min(canvas.width - CONFIG.PADDLE_WIDTH, playerPaddle.x + GAME_STATE.currentPaddleSpeed);
             }
             
             // Calculate velocities
@@ -307,12 +351,6 @@
                 ball.y = canvas.height - CONFIG.BALL_SIZE - 1;
             }
             
-            // Prevent ball from going out of bounds horizontally
-            if (ball.x < 0) {
-                ball.x = 1;
-            } else if (ball.x > canvas.width - CONFIG.BALL_SIZE) {
-                ball.x = canvas.width - CONFIG.BALL_SIZE - 1;
-            }
             
             // Ball collision with paddles - Enhanced collision detection
             if (checkBallPaddleCollision(ball, playerPaddle)) {
@@ -368,7 +406,7 @@
             }
             
             // Check scoring
-            if (ball.x < 0) {
+            if (ball.x + ball.width < 0) {
                 aiScore++;
                 updateScore();
                 resetBall();
@@ -455,9 +493,9 @@
             ball.x = canvas.width / 2 - CONFIG.BALL_SIZE / 2;
             ball.y = canvas.height / 2 - CONFIG.BALL_SIZE / 2;
             
-            // Random direction with current speed
+            // Random direction with original initial speed
             const direction = Math.random() > 0.5 ? 1 : -1;
-            ball.velocityX = GAME_STATE.currentBallSpeed * CONFIG.BALL_SPEED_MULTIPLIER * direction;
+            ball.velocityX = CONFIG.INITIAL_BALL_SPEED * CONFIG.BALL_SPEED_MULTIPLIER * direction;
             ball.velocityY = (Math.random() - 0.5) * 4;
         }
         
@@ -508,9 +546,12 @@
             aiPaddle.lastY = aiPaddle.y;
             
             document.getElementById('gameOver').style.display = 'none';
+            document.getElementById('startScreen').style.display = 'block';
+            document.getElementById('scoreDisplay').style.display = 'none';
+            document.getElementById('gameCanvas').style.display = 'none';
+            gameRunning = false;
             updateScore();
             updateSpeedDisplay();
-            resetBall();
         }
         
         // Settings menu functions
